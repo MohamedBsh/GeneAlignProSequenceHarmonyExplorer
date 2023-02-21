@@ -1,2 +1,2 @@
-# app-identification-of-common-molecular-subsequences
-An app implementation of Identification-of-Common-Molecular-Subsequences-1980-T.F.-SMITH-M.S.-WATERMAN-
+# Context
+https://arep.med.harvard.edu/pdf/Smith81.pdf
