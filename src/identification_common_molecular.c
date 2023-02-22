@@ -144,18 +144,19 @@ double** allocation(int l1, int l2)
 {
     double ** mat;
     mat = (double**) malloc ((l1+1)*sizeof(double*));
+    if (mat == NULL)
     {
         printf("Error\n");
         exit(1);
     }
-        for (int i=0; i<l1+1; i++) {
-            mat[i] = (double*) malloc ((l2+1)*sizeof(double));
-          if (mat[i] == NULL)
-          {
-              printf("Error\n");
-              exit(1);
-          }
-        }
+    for (int i=0; i<l1+1; i++) {
+        mat[i] = (double*) malloc ((l2+1)*sizeof(double));
+      if (mat[i] == NULL)
+      {
+          printf("Error\n");
+          exit(1);
+      }
+    }
     return mat;
 }
 
