@@ -17,6 +17,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
+  "devServer": {
+    "contentBase": "./public"
+  },
   "eslintConfig": {
     "extends": [
       "react-app",
