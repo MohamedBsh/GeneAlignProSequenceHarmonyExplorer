@@ -1,113 +1,102 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import useWasmModule from './useWasmModule';
+import './App.css'; // Assurez-vous de créer ce fichier CSS
 
 function App() {
   const [sequences, setSequences] = useState({ seq1: "", seq2: "" });
   const [alignment, setAlignment] = useState({ c1: "", c2: "" });
   const [similarityInfo, setSimilarityInfo] = useState({ max: 0, count: 0 });
-  const [alignSequences, setAlignSequences] = useState(null); // Stocker la fonction alignSequences
 
-  useEffect(() => {
-    // Charger le module WebAssembly depuis le dossier public
-    const loadWasmModule = async () => {
-      try {
-        const Module = await import('../public/common_molecular.js');
-        const wasmModule = await Module();
+  const { module: wasmModule, error, isLoading } = useWasmModule('/common_molecular.js');
 
-        const alignSequencesFunction = (seq1, seq2) => {
-          const length1 = seq1.length;
-          const length2 = seq2.length;
-
-          // Préparer les chaînes en mémoire
-          const s1Ptr = wasmModule._malloc(length1 + 1);
-          const s2Ptr = wasmModule._malloc(length2 + 1);
-          wasmModule.stringToUTF8(seq1, s1Ptr, length1 + 1);
-          wasmModule.stringToUTF8(seq2, s2Ptr, length2 + 1);
-
-          // Allouer la matrice
-          const matPtr = wasmModule._allocation(length1 + 1, length2 + 1);
-
-          // Remplir la matrice
-          wasmModule._FillMatrix(length1 + 1, length2 + 1, s1Ptr, s2Ptr, matPtr);
-
-          // Récupérer les informations de similarité
-          const maxInfo = wasmModule._get_max(length1 + 1, length2 + 1, matPtr);
-          const max = wasmModule.getValue(maxInfo, 'double');
-          const count = wasmModule.getValue(maxInfo + 8, 'i32'); // `cell_max` structure
-
-          setSimilarityInfo({ max, count });
-
-          // Effectuer le traceback pour obtenir l'alignement
-          const tracebackResult = wasmModule._traceback(maxInfo, length1 + 1, length2 + 1, s1Ptr, s2Ptr, matPtr);
-
-          // Libérer la mémoire allouée
-          wasmModule._free(s1Ptr);
-          wasmModule._free(s2Ptr);
-          wasmModule._free(matPtr);
-
-          // Décomposer l'alignement en deux chaînes distinctes
-          const [c1, c2] = parseAlignment(tracebackResult, length1, length2, wasmModule);
-          setAlignment({ c1, c2 });
-        };
-
-        // Stocker la fonction alignSequences dans l'état
-        setAlignSequences(() => alignSequencesFunction);
-      } catch (error) {
-        console.error("Erreur lors du chargement du module WebAssembly:", error);
-      }
-    };
-
-    loadWasmModule();
-  }, []);
-
-  // Fonction pour analyser le résultat de l'alignement
-  const parseAlignment = (tracebackResult, length1, length2, wasmModule) => {
-    // Récupérer les chaînes d'alignement en utilisant wasmModule.getValue ou d'autres méthodes pour accéder aux données
-    // Cela dépend de la manière dont `_alignment` retourne les chaînes (via des pointeurs ou des structures complexes)
-
-    // Exemple simplifié (à adapter selon le comportement exact du module C) :
-    const c1 = wasmModule.UTF8ToString(tracebackResult); // Changer si nécessaire
-    const c2 = wasmModule.UTF8ToString(tracebackResult + length1 + 1); // Ajustement nécessaire
-
-    return [c1, c2];
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        const [seq1, seq2] = content.split('\n').map(seq => seq.trim());
+        setSequences({ seq1, seq2 });
+      };
+      reader.readAsText(file);
+    }
   };
+
+  const alignSequences = () => {
+    if (!wasmModule || typeof wasmModule.ccall !== 'function') return;
+
+    const { seq1, seq2 } = sequences;
+    
+    try {
+      const resultPtr = wasmModule.ccall(
+        'align_sequences',
+        'number',
+        ['string', 'string'],
+        [seq1, seq2]
+      );
+
+      if (resultPtr === 0) {
+        console.error("Alignment function returned null pointer");
+        return;
+      }
+
+      const c1 = wasmModule.UTF8ToString(wasmModule.getValue(resultPtr, '*'));
+      const c2 = wasmModule.UTF8ToString(wasmModule.getValue(resultPtr + 4, '*'));
+      const similarity = wasmModule.getValue(resultPtr + 8, 'double');
+      const occurrences = wasmModule.getValue(resultPtr + 16, 'i32');
+
+      setAlignment({ c1, c2 });
+      setSimilarityInfo({ max: similarity, count: occurrences });
+
+      wasmModule.ccall('free_alignment_result', null, ['number'], [resultPtr]);
+    } catch (err) {
+      console.error("Error during alignment:", err);
+    }
+  };
+
+  if (isLoading) return <div className="loading">Loading WebAssembly module...</div>;
+  if (error) return <div className="error">Error loading WebAssembly module: {error.message}</div>;
 
   return (
     <div className="App">
-      <h1>Alignement de Séquences avec WebAssembly</h1>
-      <div>
-        <label>Séquence 1: </label>
-        <input
-          type="text"
-          value={sequences.seq1}
-          onChange={(e) => setSequences({ ...sequences, seq1: e.target.value })}
-        />
+      <h1>🧬 GeneAlign Pro: Sequence Harmony Explorer</h1>
+      <p className="subtitle">
+        An implementation of the Smith-Waterman algorithm for identifying common molecular subsequences, 
+        based on the 1981 paper by T.F. SMITH and M.S. WATERMAN.
+      </p>
+      <div className="input-section">
+        <div className="file-input">
+          <label htmlFor="file-upload" className="custom-file-upload">
+            Upload Sequence File
+          </label>
+          <input id="file-upload" type="file" accept=".txt" onChange={handleFileUpload} />
+        </div>
+        <div className="sequence-input">
+          <input
+            type="text"
+            value={sequences.seq1}
+            onChange={(e) => setSequences({ ...sequences, seq1: e.target.value })}
+            placeholder="Enter Sequence 1"
+          />
+          <input
+            type="text"
+            value={sequences.seq2}
+            onChange={(e) => setSequences({ ...sequences, seq2: e.target.value })}
+            placeholder="Enter Sequence 2"
+          />
+        </div>
+        <button onClick={alignSequences} className="align-button">Align Sequences</button>
       </div>
-      <div>
-        <label>Séquence 2: </label>
-        <input
-          type="text"
-          value={sequences.seq2}
-          onChange={(e) => setSequences({ ...sequences, seq2: e.target.value })}
-        />
-      </div>
-      <button
-        onClick={() => {
-          if (alignSequences) {
-            alignSequences(sequences.seq1, sequences.seq2);
-          } else {
-            console.error("La fonction alignSequences n'est pas encore chargée.");
-          }
-        }}
-      >
-        Aligner les séquences
-      </button>
 
-      <h2>Résultats</h2>
-      <p>Maximal similarity degree: {similarityInfo.max}</p>
-      <p>Occurrences: {similarityInfo.count}</p>
-      <h3>Alignement:</h3>
-      <pre>{alignment.c1}</pre>
-      <pre>{alignment.c2}</pre>
+      <div className="results-section">
+        <h2>Alignment Results</h2>
+        <p>Maximal similarity degree: {similarityInfo.max.toFixed(2)}</p>
+        <p>Occurrences: {similarityInfo.count}</p>
+        <div className="alignment-display">
+          <pre>{alignment.c1}</pre>
+          <pre>{alignment.c2}</pre>
+        </div>
+      </div>
     </div>
   );
 }
