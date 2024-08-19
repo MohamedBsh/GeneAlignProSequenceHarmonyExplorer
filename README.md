@@ -1,6 +1,6 @@
 # GeneAlign Pro: Sequence Harmony Explorer 🧬
 
-[Watch the demo video](./demo.mov)
+https://github.com/user-attachments/assets/49abab4f-59ba-4882-aab3-fc7ddb7e4a36
 
 A React web-app implementation of the Smith-Waterman algorithm for identifying common molecular subsequences, based on the 1981 paper by T.F. SMITH and M.S. WATERMAN.
 
