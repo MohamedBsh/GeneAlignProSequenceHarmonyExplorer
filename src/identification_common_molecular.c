@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Structures de données
 typedef struct {
     int idx;
     int idy;
@@ -32,7 +31,7 @@ typedef struct {
     int occurrences;
 } AlignmentResult;
 
-// Déclarations de fonctions
+
 EMSCRIPTEN_KEEPALIVE double** allocation(int l1, int l2);
 EMSCRIPTEN_KEEPALIVE void FillMatrix(int n, int m, const char* s1, const char* s2, double** mat);
 EMSCRIPTEN_KEEPALIVE cell_max get_max(int n, int m, double** mat);
@@ -41,11 +40,11 @@ EMSCRIPTEN_KEEPALIVE cell_liste traceback(cell c, int n, int m, const char* s1, 
 EMSCRIPTEN_KEEPALIVE AlignmentResult* alignment(cell_liste *chaine, int n, int m, const char* s1, const char* s2);
 EMSCRIPTEN_KEEPALIVE void free_alignment_result(AlignmentResult* result);
 
-// Nouvelles fonctions pour l'interaction avec JavaScript
+
 EMSCRIPTEN_KEEPALIVE AlignmentResult* align_sequences(const char* s1, const char* s2);
 EMSCRIPTEN_KEEPALIVE void free_matrix(double** mat, int rows);
 
-// Implémentations des fonctions
+
 
 double similarite(char s1, char s2) {
     return (s1 == s2) ? 1.0 : -0.33;
@@ -251,8 +250,6 @@ AlignmentResult* alignment(cell_liste *chaine, int n, int m, const char* s1, con
     }
     result->c1 = c1;
     result->c2 = c2;
-    //result->similarity = 0;
-    //result->occurrences = 0;
 
     return result;
 }
