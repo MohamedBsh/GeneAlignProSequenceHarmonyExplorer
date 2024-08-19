@@ -10,20 +10,16 @@ export function useWasmModule(moduleUrl) {
 
     const loadWasmModule = async () => {
       try {
-        // Charger le script Emscripten généré
         const script = document.createElement('script');
         script.src = moduleUrl.replace('.wasm', '.js');
         script.async = true;
         document.body.appendChild(script);
 
-        // Attendre que le script soit chargé
         await new Promise((resolve, reject) => {
           script.onload = resolve;
           script.onerror = reject;
         });
 
-        // Le script Emscripten définit une fonction globale Module
-        // Attendons qu'elle soit disponible
         const waitForModule = () => {
           return new Promise((resolve) => {
             const check = () => {
@@ -39,7 +35,6 @@ export function useWasmModule(moduleUrl) {
 
         const Module = await waitForModule();
         
-        // Initialiser le module
         const initializedModule = await Module();
 
         if (isMounted) {
@@ -47,7 +42,7 @@ export function useWasmModule(moduleUrl) {
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Erreur lors du chargement du module WebAssembly:", err);
+        console.error("Error loading WebAssembly module:", err);
         if (isMounted) {
           setError(err);
           setIsLoading(false);
