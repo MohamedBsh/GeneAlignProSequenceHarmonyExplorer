@@ -8,7 +8,7 @@ A React web-app implementation of the Smith-Waterman algorithm for identifying c
 
 - **Core Implementation**: Written in C for performance (and gets pleasure from debugging segmentation fault). 
 - **WebAssembly**: Compiles C code to run in the browser.
-- **Frontend**: React.js for a modern, responsive user interface.
+- **Frontend**: React for a modern, responsive user interface.
 - **Deployment**: Hosted on Vercel (TBD).
 
 
